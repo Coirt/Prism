@@ -91,31 +91,34 @@ void Audio::populateInputBuffer(rack::engine::Input &input) {
 void Audio::resampleInput(rainbow::Controller &main) {
 
 	// We need to flush other buffers!
-	for (int i = 0; i < inChannels; i++) {
-		nInputSrc[i].setRates(sampleRate, 96000);
+	for (int i = 0; i < NUM_CHANNELS; i++) {
+		if (!nInputBuffer[i].empty()) {
 
-		int inLen = nInputBuffer[i].size();
-		int outLen = NUM_SAMPLES;
-		nInputSrc[i].process(nInputBuffer[i].startData(), &inLen, nInputFrames[i], &outLen);
-		nInputBuffer[i].startIncr(inLen);
+			nInputSrc[i].setRates(sampleRate, 96000);
 
-		for (int j = 0; j < NUM_SAMPLES; j++) {
-			int32_t v = (int32_t)clamp(nInputFrames[i][j].samples[0] * MAX_12BIT, MIN_12BIT, MAX_12BIT);
+			int inLen = nInputBuffer[i].size();
+			int outLen = NUM_SAMPLES;
+			nInputSrc[i].process(nInputBuffer[i].startData(), &inLen, nInputFrames[i], &outLen);
+			nInputBuffer[i].startIncr(inLen);
 
-			switch(inChannels) {
-				case 2:
-					main.io->in[i][j] 		= v;
-					main.io->in[2 + i][j] 	= v;
-					main.io->in[4 + i][j] 	= v;
-					break;
-				case 3:
-					main.io->in[i][j] 		= v;
-					main.io->in[1 + i][j] 	= v;
-					break;
-				default:
-					main.io->in[i][j] 		= v;
+			for (int j = 0; j < NUM_SAMPLES; j++) {
+				int32_t v = (int32_t)clamp(nInputFrames[i][j].samples[0] * MAX_12BIT, MIN_12BIT, MAX_12BIT);
+
+				switch(inChannels) {
+					case 2:
+						main.io->in[i][j] 		= v;
+						main.io->in[2 + i][j] 	= v;
+						main.io->in[4 + i][j] 	= v;
+						break;
+					case 3:
+						main.io->in[i][j] 		= v;
+						main.io->in[1 + i][j] 	= v;
+						break;
+					default:
+						main.io->in[i][j] 		= v;
+				}
 			}
-		}
+		} 
 	}
 }
 
