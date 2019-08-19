@@ -55,7 +55,7 @@ void Audio::nChannelProcess(rainbow::Controller &main, rack::engine::Input &inpu
 
 	// At this point we have populated 2,3 or 6 buffers
 	// Process buffer
-	if (nOutputBuffer.empty()) {
+	if (nOutputBuffer[0].empty()) {
 		resampleInput(main);
 		// Pass to module
 		main.process_audio();
@@ -63,7 +63,7 @@ void Audio::nChannelProcess(rainbow::Controller &main, rack::engine::Input &inpu
 	}
 
 	// Set output
-	if (!nOutputBuffer.empty()) {
+	if (!nOutputBuffer[0].empty()) {
 		processOutputBuffer(output);
 	}
 }
@@ -127,62 +127,68 @@ void Audio::populateAndResampleOutputBuffer(rainbow::Controller &main) {
 	// Convert output buffer
 	for (int chan = 0; chan < NUM_CHANNELS; chan++) {
 		for (int i = 0; i < NUM_SAMPLES; i++) {
-			nOutputFrames[i].samples[chan] = main.io->out[chan][i] / MAX_12BIT;
+			switch(outputChannels) {
+				case 0:
+					nOutputFrames[0][i].samples[0] += main.io->out[chan][i] / MAX_12BIT;
+					break;
+				case 1:
+					if (i & 1) {
+						nOutputFrames[1][i].samples[0] += main.io->out[chan][i] / MAX_12BIT;
+					} else {
+						nOutputFrames[0][i].samples[0] += main.io->out[chan][i] / MAX_12BIT;
+					}
+					break;
+				case 2:
+					nOutputFrames[chan][i].samples[0] = main.io->out[chan][i] / MAX_12BIT; //assign not add
+					break;
+				default:
+					nOutputFrames[0][i].samples[0] += main.io->out[chan][i] / MAX_12BIT;
+					break;
+			}
+
+			nOutputSrc[chan].setRates(96000, sampleRate);
+			int inLen = NUM_SAMPLES;
+			int outLen = nOutputBuffer[chan].capacity();
+			nOutputSrc[chan].process(nOutputFrames[chan], &inLen, nOutputBuffer[chan].endData(), &outLen);
+			nOutputBuffer[chan].endIncr(outLen);
+
 		}
 	}
-
-	nOutputSrc.setRates(96000, sampleRate);
-	int inLen = NUM_SAMPLES;
-	int outLen = nOutputBuffer.capacity();
-	nOutputSrc.process(nOutputFrames, &inLen, nOutputBuffer.endData(), &outLen);
-	nOutputBuffer.endIncr(outLen);
-
 }
 
 void Audio::processOutputBuffer(rack::engine::Output &output) {
-	nOutputFrame = nOutputBuffer.shift();
-
-	float mono = 0.0f;
-	float l = 0.0f;
-	float r = 0.0;
 
 	output.setChannels(outChannels);
 
-	for (int i = 0; i < NUM_CHANNELS; i++) {
-		switch(outChannels) {
+	bool bufferReady = true;
+	for (int chan = 0; chan < outChannels; chan++) {
+		bufferReady = bufferReady && !nOutputBuffer[chan].empty();
+	}
+
+	// Set output
+	if (bufferReady) {
+
+		for (int chan = 0; chan < outChannels; chan++) {
+			nOutputFrame[chan] = nOutputBuffer[chan].shift();
+		}
+
+		switch(outputChannels) {
+			case 0:
+				output.setVoltage(nOutputFrame[0].samples[0] * 5.0f, 0);
+				break;
 			case 1:
-				mono += nOutputFrame.samples[i];
+				output.setVoltage(nOutputFrame[0].samples[0] * 5.0f, 0);
+				output.setVoltage(nOutputFrame[1].samples[0] * 5.0f, 1);
 				break;
 			case 2:
-				if (i & 1) {
-					r += nOutputFrame.samples[i];
-				} else {
-					l += nOutputFrame.samples[i];
+				for (int chan = 0; chan < outChannels; chan++) {
+					output.setVoltage(nOutputFrame[chan].samples[0] * 5.0f, chan);
 				}
 				break;
-			case 6:
-				output.setVoltage(nOutputFrame.samples[i] * 5.0f, i);
-				break;
 			default:
-				mono += nOutputFrame.samples[i];
+				output.setVoltage(nOutputFrame[0].samples[0] * 5.0f, 0);
 				break;
 		}
 	}
-
-	switch(outChannels) {
-		case 1:
-			output.setVoltage(mono * 5.0f, 0);
-			break;
-		case 2:
-			output.setVoltage(l * 5.0f, 0);
-			output.setVoltage(r * 5.0f, 1);
-			break;
-		case 6: // Do nothing
-			break;
-		default:
-			output.setVoltage(mono * 5.0f, 0);
-			break;
-	}
-
 }
 
