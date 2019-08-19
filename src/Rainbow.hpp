@@ -140,8 +140,8 @@ struct Audio {
 	dsp::SampleRateConverter<1> nInputSrc[6] = {};
 	dsp::DoubleRingBuffer<dsp::Frame<1>, 256> nInputBuffer[6] = {};
 
-	dsp::SampleRateConverter<6> outputSrc;
-	dsp::DoubleRingBuffer<dsp::Frame<6>, 256> outputBuffer;
+	dsp::SampleRateConverter<6> nOutputSrc;
+	dsp::DoubleRingBuffer<dsp::Frame<6>, 256> nOutputBuffer;
 
 	bogaudio::dsp::PinkNoiseGenerator pink;
 	bogaudio::dsp::RedNoiseGenerator brown;
@@ -149,8 +149,8 @@ struct Audio {
 
 	dsp::Frame<1> nInputFrame[6] = {};
 	dsp::Frame<1> nInputFrames[6][NUM_SAMPLES] = {};
-	dsp::Frame<6> outputFrame = {};
-	dsp::Frame<6> outputFrames[NUM_SAMPLES] = {};
+	dsp::Frame<6> nOutputFrame = {};
+	dsp::Frame<6> nOutputFrames[NUM_SAMPLES] = {};
 
    	float generateNoise();
     void nChannelProcess(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output);

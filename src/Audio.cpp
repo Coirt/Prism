@@ -55,7 +55,7 @@ void Audio::nChannelProcess(rainbow::Controller &main, rack::engine::Input &inpu
 
 	// At this point we have populated 2,3 or 6 buffers
 	// Process buffer
-	if (outputBuffer.empty()) {
+	if (nOutputBuffer.empty()) {
 		resampleInput(main);
 		// Pass to module
 		main.process_audio();
@@ -63,7 +63,7 @@ void Audio::nChannelProcess(rainbow::Controller &main, rack::engine::Input &inpu
 	}
 
 	// Set output
-	if (!outputBuffer.empty()) {
+	if (!nOutputBuffer.empty()) {
 		processOutputBuffer(output);
 	}
 }
@@ -127,20 +127,20 @@ void Audio::populateAndResampleOutputBuffer(rainbow::Controller &main) {
 	// Convert output buffer
 	for (int chan = 0; chan < NUM_CHANNELS; chan++) {
 		for (int i = 0; i < NUM_SAMPLES; i++) {
-			outputFrames[i].samples[chan] = main.io->out[chan][i] / MAX_12BIT;
+			nOutputFrames[i].samples[chan] = main.io->out[chan][i] / MAX_12BIT;
 		}
 	}
 
-	outputSrc.setRates(96000, sampleRate);
+	nOutputSrc.setRates(96000, sampleRate);
 	int inLen = NUM_SAMPLES;
-	int outLen = outputBuffer.capacity();
-	outputSrc.process(outputFrames, &inLen, outputBuffer.endData(), &outLen);
-	outputBuffer.endIncr(outLen);
+	int outLen = nOutputBuffer.capacity();
+	nOutputSrc.process(nOutputFrames, &inLen, nOutputBuffer.endData(), &outLen);
+	nOutputBuffer.endIncr(outLen);
 
 }
 
 void Audio::processOutputBuffer(rack::engine::Output &output) {
-	outputFrame = outputBuffer.shift();
+	nOutputFrame = nOutputBuffer.shift();
 
 	float mono = 0.0f;
 	float l = 0.0f;
@@ -151,20 +151,20 @@ void Audio::processOutputBuffer(rack::engine::Output &output) {
 	for (int i = 0; i < NUM_CHANNELS; i++) {
 		switch(outChannels) {
 			case 1:
-				mono += outputFrame.samples[i];
+				mono += nOutputFrame.samples[i];
 				break;
 			case 2:
 				if (i & 1) {
-					r += outputFrame.samples[i];
+					r += nOutputFrame.samples[i];
 				} else {
-					l += outputFrame.samples[i];
+					l += nOutputFrame.samples[i];
 				}
 				break;
 			case 6:
-				output.setVoltage(outputFrame.samples[i] * 5.0f, i);
+				output.setVoltage(nOutputFrame.samples[i] * 5.0f, i);
 				break;
 			default:
-				mono += outputFrame.samples[i];
+				mono += nOutputFrame.samples[i];
 				break;
 		}
 	}
