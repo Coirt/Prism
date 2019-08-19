@@ -134,6 +134,9 @@ struct Audio {
     int noiseSelected;
     float sampleRate;
 
+    int inChannels;
+    int outChannels;
+
 	dsp::SampleRateConverter<1> nInputSrc[6] = {};
 	dsp::DoubleRingBuffer<dsp::Frame<1>, 256> nInputBuffer[6] = {};
 
@@ -151,6 +154,11 @@ struct Audio {
 
    	float generateNoise();
     void nChannelProcess(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output);
+
+    void populateInputBuffer(rack::engine::Input &input);
+    void resampleInput(rainbow::Controller &main);
+    void populateAndResampleOutputBuffer(rainbow::Controller &main);
+    void processOutputBuffer(rack::engine::Output &output);
 
 };
 
