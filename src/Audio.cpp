@@ -20,8 +20,58 @@ float Audio::generateNoise() {
 	return nO;
 }
 
+void Audio::nChannelProcess(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output) {
+
+    // Must generate 2, 3 or 6 input streams
+    switch(inputChannels) {
+            case 0:
+            case 1:
+            case 2:
+                    inChannels = 2;
+                    break;
+            case 3:
+                    inChannels = 3;
+                    break;
+            default:
+                    inChannels = 6;
+    }
+
+    // Must generate 1, 2 or 6 output streams
+    switch(outputChannels) {
+            case 0:
+                    outChannels = 1;
+                    break;
+            case 1:
+                    outChannels = 2;
+                    break;
+            case 2:
+                    outChannels = 6;
+                    break;
+            default:
+                    outChannels = 1;
+    }
+
+	populateInputBuffer(input);
+
+	// At this point we have populated 2,3 or 6 buffers
+	// Process buffer
+	if (outputBuffer.empty()) {
+		resampleInput(main);
+		// Pass to module
+		main.process_audio();
+		populateAndResampleOutputBuffer(main);
+	}
+
+	// Set output
+	if (!outputBuffer.empty()) {
+		processOutputBuffer(output);
+	}
+}
+
+
 // Populate input buffer
 // Do not populate if we should not add more data to channels 2-6
+// OK
 void Audio::populateInputBuffer(rack::engine::Input &input) {
 	for (int i = 0; i < inChannels; i++) {
 		if (!nInputBuffer[i].full()) {
@@ -37,8 +87,10 @@ void Audio::populateInputBuffer(rack::engine::Input &input) {
 	}
 }
 
+// Process input buffer
 void Audio::resampleInput(rainbow::Controller &main) {
 
+	// We need to flush other buffers!
 	for (int i = 0; i < inChannels; i++) {
 		nInputSrc[i].setRates(sampleRate, 96000);
 
@@ -131,58 +183,3 @@ void Audio::processOutputBuffer(rack::engine::Output &output) {
 
 }
 
-void Audio::nChannelProcess(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output) {
-
-    // Must generate 2, 3 or 6 input streams
-    switch(inputChannels) {
-            case 0:
-            case 1:
-            case 2:
-                    inChannels = 2;
-                    break;
-            case 3:
-                    inChannels = 3;
-                    break;
-            default:
-                    inChannels = 6;
-    }
-
-    // Must generate 1, 2 or 6 output streams
-    switch(outputChannels) {
-            case 0:
-                    outChannels = 1;
-                    break;
-            case 1:
-                    outChannels = 2;
-                    break;
-            case 2:
-                    outChannels = 6;
-                    break;
-            default:
-                    outChannels = 1;
-    }
-
-	populateInputBuffer(input);
-
-	// At this point we have populated 2,3 or 6 buffers
-
-	// Process buffer
-	if (outputBuffer.empty()) {
-
-		resampleInput(main);
-
-		// Pass to module
-		main.process_audio();
-
-		populateAndResampleOutputBuffer(main);
-
-	}
-
-	// Set output
-	if (!outputBuffer.empty()) {
-
-		processOutputBuffer(output);
-
-	}
-
-}
