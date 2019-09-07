@@ -38,20 +38,42 @@
 #define SLIDEREDITNOTE_LPF 0.980
 #define CENTER_PLATEAU 80
 
+#define RAINBOW			 		0x00000000
+
+#define FILTER_RUN		 		0x00000001
+
+#define AUDIO_PREPROCESS1_1 	0x00000002
+#define AUDIO_PREPROCESS1_2 	0x00000003
+#define AUDIO_POSTPROCESS1_1	0x00000004
+#define AUDIO_POSTPROCESS1_2 	0x00000005
+
+#define AUDIO_PREPROCESS2_1 	0x00000006
+#define AUDIO_PREPROCESS2_2 	0x00000007
+#define AUDIO_POSTPROCESS2_1	0x00000008
+#define AUDIO_POSTPROCESS2_2 	0x00000009
+
+#define AUDIO_PREPROCESS6_1 	0x0000000A
+#define AUDIO_PREPROCESS6_2 	0x0000000B
+#define AUDIO_POSTPROCESS6_1	0x0000000C
+#define AUDIO_POSTPROCESS6_2 	0x0000000D
+
+#define READ_INPUTS		 		0x0000000E
+#define WRITE_OUTPUT	 		0x0000000F
+
 struct hpclock
 {
-    typedef double                             	rep;
-    typedef std::ratio<1>                      	period;
-    typedef std::chrono::duration<rep, period> 	duration;
+    typedef long long 			             	rep;
+    typedef std::micro             				period;
+    typedef std::chrono::microseconds		 	duration;
     typedef std::chrono::time_point<hpclock>  	time_point;
     static const bool is_steady =              	false;
 
     static time_point now()
     {
-        static const long long frequency = init_frequency();
+        // static const long long frequency = init_frequency();
         LARGE_INTEGER t;
         QueryPerformanceCounter(&t);
-        return time_point(duration(static_cast<rep>(t.QuadPart)/frequency));
+        return time_point(duration(static_cast<rep>(t.QuadPart)));
     }
 private:
     static long long init_frequency()
@@ -61,6 +83,40 @@ private:
         return f.QuadPart;
     }
 };
+
+struct rMonitor {
+
+	unsigned _max = 0x0000000F;
+
+	unsigned long long _visits[1024];
+	unsigned long long _time[1024];
+	hpclock::time_point _start[1024];
+	unsigned long long loops = 0;
+
+	inline void start(int f) {
+		_start[f] = hpclock::now();
+	}
+
+	inline void stop(int f) {
+	    auto end = hpclock::now();
+	    auto elapsed = end - _start[f];
+		_time[f] += elapsed.count();
+		_visits[f]++;
+	}
+
+	void dump() {
+		for (unsigned i = 0; i <= _max; i++) {
+			std::cout << i << " " << std::to_string(_visits[i]) << " " << (float)_time[i]/(float)_visits[i] << std::endl;
+			_time[i] = 0;
+			_visits[i] = 0;
+		}
+
+		loops = 0;
+	}
+
+};
+
+extern rMonitor m;
 
 enum FilterModes {
 	TWOPASS = 2,

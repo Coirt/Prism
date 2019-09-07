@@ -494,6 +494,8 @@ void Filter::filter_bpre() {
 
 void Filter::process_audio_block() {
 
+	m.start(FILTER_RUN);
+
 	float f_blended;
 
 	if (filter_type_changed) {
@@ -515,12 +517,12 @@ void Filter::process_audio_block() {
 			filter_bpre();
 		}
 	} 	// Filter-mode
-	
+
+	rotation->update_morph();
+
 	// MORPHING
 	for (int i = 0; i < NUM_SAMPLES; i++) {
 		
-		rotation->update_morph();
-
 		for (int j = 0; j < NUM_CHANNELS; j++) {
 		
 			if (rotation->motion_morphpos[j] == 0.0f) {
@@ -548,6 +550,8 @@ void Filter::process_audio_block() {
 	
 	filter_type_changed = false;
 	io->USER_SCALE_CHANGED = false;
+
+	m.stop(FILTER_RUN);
 
 }
 

@@ -22,6 +22,8 @@ float Audio::generateNoise() {
 
 void Audio::ChannelProcess1(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output) {
 
+	m.start(AUDIO_PREPROCESS1_1);
+
 	int inChannels;
 
 	// Must generate 2, 3 or 6 input streams
@@ -51,10 +53,14 @@ void Audio::ChannelProcess1(rainbow::Controller &main, rack::engine::Input &inpu
 		} 
 	}
 
+	m.stop(AUDIO_PREPROCESS1_1);
+
 	// At this point we have populated 2,3 or 6 buffers
 
 	// Process buffer
 	if (outputBuffer1.empty()) {
+
+		m.start(AUDIO_PREPROCESS1_2);
 
 		for (int i = 0; i < inChannels; i++) {
 			nInputSrc[i].setRates(sampleRate, 96000);
@@ -83,8 +89,12 @@ void Audio::ChannelProcess1(rainbow::Controller &main, rack::engine::Input &inpu
 			}
 		}
 
+		m.stop(AUDIO_PREPROCESS1_2);
+
 		// Pass to module
 		main.process_audio();
+
+		m.start(AUDIO_POSTPROCESS1_1);
 
 		// Convert output buffer
 		for (int chan = 0; chan < NUM_CHANNELS; chan++) {
@@ -104,7 +114,12 @@ void Audio::ChannelProcess1(rainbow::Controller &main, rack::engine::Input &inpu
 		int outLen = outputBuffer1.capacity();
 		outputSrc1.process(outputFrames1, &inLen, outputBuffer1.endData(), &outLen);
 		outputBuffer1.endIncr(outLen);
+
+		m.stop(AUDIO_POSTPROCESS1_1);
+
 	}
+
+	m.start(AUDIO_POSTPROCESS1_2);
 
 	// Set output
 	if (!outputBuffer1.empty()) {
@@ -113,9 +128,14 @@ void Audio::ChannelProcess1(rainbow::Controller &main, rack::engine::Input &inpu
 		output.setVoltage(outputFrame1.samples[0] * 5.0f, 0);
 	}
 
+	m.stop(AUDIO_POSTPROCESS1_2);
+
+
 }
 
 void Audio::ChannelProcess2(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output) {
+
+	m.start(AUDIO_PREPROCESS2_1);
 
 	int inChannels;
 
@@ -146,10 +166,14 @@ void Audio::ChannelProcess2(rainbow::Controller &main, rack::engine::Input &inpu
 		} 
 	}
 
+	m.stop(AUDIO_PREPROCESS2_1);
+
 	// At this point we have populated 2,3 or 6 buffers
 
 	// Process buffer
 	if (outputBuffer2.empty()) {
+
+		m.start(AUDIO_PREPROCESS2_2);
 
 		for (int i = 0; i < inChannels; i++) {
 			nInputSrc[i].setRates(sampleRate, 96000);
@@ -178,8 +202,12 @@ void Audio::ChannelProcess2(rainbow::Controller &main, rack::engine::Input &inpu
 			}
 		}
 
+		m.stop(AUDIO_PREPROCESS2_2);
+
 		// Pass to module
 		main.process_audio();
+
+		m.start(AUDIO_POSTPROCESS2_1);
 
 		// Convert output buffer
 		for (int chan = 0; chan < NUM_CHANNELS; chan++) {
@@ -205,7 +233,12 @@ void Audio::ChannelProcess2(rainbow::Controller &main, rack::engine::Input &inpu
 		int outLen = outputBuffer2.capacity();
 		outputSrc2.process(outputFrames2, &inLen, outputBuffer2.endData(), &outLen);
 		outputBuffer2.endIncr(outLen);
+
+		m.stop(AUDIO_POSTPROCESS2_1);
+
 	}
+
+	m.start(AUDIO_POSTPROCESS2_2);
 
 	// Set output
 	if (!outputBuffer2.empty()) {
@@ -215,9 +248,13 @@ void Audio::ChannelProcess2(rainbow::Controller &main, rack::engine::Input &inpu
 		output.setVoltage(outputFrame2.samples[1] * 5.0f, 1);
 	}
 
+	m.stop(AUDIO_POSTPROCESS2_2);
+
 }
 
 void Audio::ChannelProcess6(rainbow::Controller &main, rack::engine::Input &input, rack::engine::Output &output) {
+
+	m.start(AUDIO_PREPROCESS6_1);
 
 	int inChannels;
 
@@ -248,10 +285,14 @@ void Audio::ChannelProcess6(rainbow::Controller &main, rack::engine::Input &inpu
 		} 
 	}
 
+	m.stop(AUDIO_PREPROCESS6_1);
+
 	// At this point we have populated 2,3 or 6 buffers
 
 	// Process buffer
 	if (outputBuffer6.empty()) {
+
+		m.start(AUDIO_PREPROCESS6_2);
 
 		for (int i = 0; i < inChannels; i++) {
 			nInputSrc[i].setRates(sampleRate, 96000);
@@ -280,8 +321,12 @@ void Audio::ChannelProcess6(rainbow::Controller &main, rack::engine::Input &inpu
 			}
 		}
 
+		m.stop(AUDIO_PREPROCESS6_2);
+
 		// Pass to module
 		main.process_audio();
+
+		m.start(AUDIO_POSTPROCESS6_1);
 
 		// Convert output buffer
 		for (int chan = 0; chan < NUM_CHANNELS; chan++) {
@@ -295,7 +340,12 @@ void Audio::ChannelProcess6(rainbow::Controller &main, rack::engine::Input &inpu
 		int outLen = outputBuffer6.capacity();
 		outputSrc6.process(outputFrames6, &inLen, outputBuffer6.endData(), &outLen);
 		outputBuffer6.endIncr(outLen);
+
+		m.stop(AUDIO_POSTPROCESS6_1);
+
 	}
+
+	m.start(AUDIO_POSTPROCESS6_2);
 
 	// Set output
 	if (!outputBuffer6.empty()) {
@@ -305,4 +355,7 @@ void Audio::ChannelProcess6(rainbow::Controller &main, rack::engine::Input &inpu
 			output.setVoltage(outputFrame6.samples[i] * 5.0f, i);
 		}
 	}
+
+	m.stop(AUDIO_POSTPROCESS6_2);
+
 }
