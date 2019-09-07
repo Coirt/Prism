@@ -192,6 +192,8 @@ struct Rainbow : core::PrismModule {
 
 	rainbow::Audio audio;
 
+	int frameRate = 735;
+
 	json_t *dataToJson() override {
 
 		json_t *rootJ = json_object();
@@ -417,6 +419,12 @@ struct Rainbow : core::PrismModule {
 		pMessage->updated = false;
 		cMessage->updated = false;
 
+		onSampleRateChange();
+
+	}
+
+	void onSampleRateChange() override {
+		frameRate = APP->engine->getSampleRate() / 60;
 	}
 
 	void onReset() override {
@@ -447,8 +455,16 @@ void Rainbow::process(const ProcessArgs &args) {
 	m.start(RAINBOW);
 
 	m.start(READ_INPUTS);
+	
+	static int frameC = 0;
+	main.io->UI_UPDATE = false;
 
 	PrismModule::step();
+
+	if (++frameC > frameRate) {
+		frameC = 0;
+		main.io->UI_UPDATE = true;
+	}
 
 	main.io->USER_SCALE_CHANGED = false;
 	if (rightExpander.module) {
@@ -672,19 +688,13 @@ void Rainbow::process(const ProcessArgs &args) {
 		vuMeters[n].process(args.sampleTime, main.io->channelLevel[n]);
 	}
 
-	static int frameC = 0;
-
-	// Only refresh UI at 60fps
-	if (++frameC > 120) {
-
-		frameC = 0;
+	if (main.io->UI_UPDATE) {
 
 		// Set VCV LEDs
 		for (int n = 0; n < 6; n++) {
 			main.io->LOCK_ON[n] ? lights[LOCK_LIGHT + n].setBrightness(1.0f) : lights[LOCK_LIGHT + n].setBrightness(0.0f); 
 			main.io->CHANNEL_Q_ON[n] ? lights[QLOCK_LIGHT + n].setBrightness(1.0f) : lights[QLOCK_LIGHT + n].setBrightness(0.0f); 
 		}
-
 
 		main.io->INPUT_CLIP ? lights[CLIP_LIGHT].setBrightness(1.0f) : lights[CLIP_LIGHT].setBrightness(0.0f); 
 
@@ -787,7 +797,7 @@ void Rainbow::process(const ProcessArgs &args) {
 
 	m.stop(RAINBOW);
 
-	if(m.loops > 10000) {
+    if(m.loops > 10000) {
 		m.dump();
 	}
 
