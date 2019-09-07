@@ -6,6 +6,9 @@
 #include <vector>
 #include <inttypes.h>
 
+#include <chrono>
+#include <windows.h>
+
 #include "plugin.hpp"
 
 #include "dsp/noise.hpp"
@@ -34,6 +37,30 @@
 #define ROOT 13.75
 #define SLIDEREDITNOTE_LPF 0.980
 #define CENTER_PLATEAU 80
+
+struct hpclock
+{
+    typedef double                             	rep;
+    typedef std::ratio<1>                      	period;
+    typedef std::chrono::duration<rep, period> 	duration;
+    typedef std::chrono::time_point<hpclock>  	time_point;
+    static const bool is_steady =              	false;
+
+    static time_point now()
+    {
+        static const long long frequency = init_frequency();
+        LARGE_INTEGER t;
+        QueryPerformanceCounter(&t);
+        return time_point(duration(static_cast<rep>(t.QuadPart)/frequency));
+    }
+private:
+    static long long init_frequency()
+    {
+        LARGE_INTEGER f;
+        QueryPerformanceFrequency(&f);
+        return f.QuadPart;
+    }
+};
 
 enum FilterModes {
 	TWOPASS = 2,
